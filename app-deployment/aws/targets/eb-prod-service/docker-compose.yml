@@ -32,7 +32,7 @@ services:
 
     # Command for starting a Python FastAPI application with an HTTPS server on port 8443.
     # We assume that the application's Dockerfile includes code that generates or imports an SSL certificate and key.
-    # command: bash -c "uvicorn mavedb.server_main:app --host 0.0.0.0 --port 8443 --ssl-keyfile=./ssl/server.key --ssl-certfile=./ssl/server.cert"
+    # command: bash -c "uvicorn namespace.server_main:app --host 0.0.0.0 --port 8443 --ssl-keyfile=./ssl/server.key --ssl-certfile=./ssl/server.cert"
 
     container_name: {container-name}
     depends_on:

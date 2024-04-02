@@ -142,11 +142,11 @@ Parameters:
   ProjectName:
     Type: String
     Description: Project name for use in resource names and tags.
-    Default: "mavedb"
+    Default: "project"
   GlobalResourcePrefix:
     Type: String
     Description: Prefix for globally unique resource names like S3 buckets.
-    Default: "bbi-"
+    Default: "organization-"
   ResourcePrefix:
     Type: String
     Description: Prefix for all resource names except globally unique names.
