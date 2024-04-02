@@ -1,0 +1,3 @@
+[submodule "app-deployment/aws/environments/aws/submodules/aws-config-rules"]
+	path = app-deployment/aws/environments/aws/submodules/aws-config-rules
+	url = https://github.com/awslabs/aws-config-rules

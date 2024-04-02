@@ -1,0 +1,363 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Provisions HIPAA Ready Environment in AWS - Transit gateway(qs-1rabh51ku)
+Metadata:
+  Identifier:
+    Value: main
+  Input:
+    Description: Input of all required parameters in nested stacks
+  Output:
+    Description: N/A
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Project configuration
+      Parameters:
+      - ProjectName
+      - GlobalResourcePrefix
+      - ResourcePrefix
+    - Label:
+        default: Staging VPC configuration
+      Parameters:
+      - StagingVPCCIDRBlock
+    - Label:
+        default: Production VPC configuration
+      Parameters:
+      - ProdVPCCIDRBlock
+    - Label:
+        default: Imported parameters
+      Parameters:
+      - StagingVPC
+      - StagingPrivateSubnet1
+      - StagingPrivateSubnet2
+      - StagingPrivateRouteTable1
+      - StagingPublicRouteTable1
+      - ProductionVPC
+      - ProductionPrivateSubnet1
+      - ProductionPrivateSubnet2
+      - ProductionPrivateRouteTable1
+      - ProductionPublicRouteTable1
+      - ManagementVPC
+      - ManagementPrivateSubnet1
+      - ManagementPrivateSubnet2
+      - ManagementPrivateRouteTable1
+      - ManagementPrivateRouteTable2
+      - ManagementPublicRouteTable1
+      - ManagementPublicRouteTable2
+    ParameterLabels:
+      ProjectName:
+        default: Project name for use in resource names and tags
+      GlobalResourcePrefix:
+        default: Prefix for globally unique resource names like S3 buckets
+      ResourcePrefix:
+        default: Prefix for all resource names except globally unique names
+      StagingVPCCIDRBlock:
+        default: Staging VPC CIDR block
+      ProdVPCCIDRBlock:
+        default: Production VPC CIDR block
+      StagingVPC:
+        default: Staging VPC
+      StagingPrivateSubnet1:
+        default: Staging VPC private subnet 1
+      StagingPrivateSubnet2:
+        default: Staging VPC private subnet 2
+      StagingPrivateRouteTable1:
+        default: Staging VPC private route table 1
+      StagingPublicRouteTable1:
+        default: Staging VPC public route table 1
+      ProductionVPC:
+        default: Production VPC
+      ProductionPrivateSubnet1:
+        default: Production VPC private subnet 1
+      ProductionPrivateSubnet2:
+        default: Production VPC private subnet 2
+      ProductionPrivateRouteTable1:
+        default: Production VPC private route table 1
+      ProductionPublicRouteTable1:
+        default: Production VPC public route table 1
+      ManagementVPC:
+        default: Management VPC
+      ManagementPrivateSubnet1:
+        default: Management VPC private subnet 1
+      ManagementPrivateSubnet2:
+        default: Management VPC private subnet 2
+      ManagementPrivateRouteTable1:
+        default: Management VPC private route table 1
+      ManagementPrivateRouteTable2:
+        default: Management VPC private route table 2
+      ManagementPublicRouteTable1:
+        default: Management VPC public route table 1
+      ManagementPublicRouteTable2:
+        default: Management VPC public route table 2
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name for use in resource names and tags.
+  GlobalResourcePrefix:
+    Type: String
+    Description: Prefix for globally unique resource names like S3 buckets.
+  ResourcePrefix:
+    Type: String
+    Description: Prefix for all resource names except globally unique names.
+  StagingVPC:
+    Type: String
+    Description: Staging VPC.
+  StagingPrivateSubnet1:
+    Type: String
+    Description: Staging VPC private subnet 1.
+  StagingPrivateSubnet2:
+    Type: String
+    Description: Staging VPC private subnet 2.
+  StagingPrivateRouteTable1:
+    Type: String
+    Description: Staging VPC private route table 1.
+  StagingPublicRouteTable1:
+    Type: String
+    Description: Staging VPC public route table 1.
+  ProductionVPC:
+    Type: String
+    Description: Production VPC.
+  ProductionPrivateSubnet1:
+    Type: String
+    Description: Production VPC private subnet 1.
+  ProductionPrivateSubnet2:
+    Type: String
+    Description: Production VPC private subnet 2.
+  ProductionPrivateRouteTable1:
+    Type: String
+    Description: Production VPC private route table 1.
+  ProductionPublicRouteTable1:
+    Type: String
+    Description: Production VPC public route table 1.
+  ManagementVPC:
+    Type: String
+    Description: Management VPC.
+  ManagementPrivateSubnet1:
+    Type: String
+    Description: Management VPC private subnet 1.
+  ManagementPrivateSubnet2:
+    Type: String
+    Description: Management VPC private subnet 2.
+  ManagementPrivateRouteTable1:
+    Type: String
+    Description: Management VPC private route table 1.
+  ManagementPrivateRouteTable2:
+    Type: String
+    Description: Management VPC private route table 2.
+  ManagementPublicRouteTable1:
+    Type: String
+    Description: Management VPC public route table 1.
+  ManagementPublicRouteTable2:
+    Type: String
+    Description: Management VPC public route table 2.
+  StagingVPCCIDRBlock:
+    Type: String
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$"
+    Description: Staging VPC CIDR block.
+  ProdVPCCIDRBlock:
+    Type: String
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$"
+    Description: Production VPC CIDR block.
+Resources:
+  TransitGateway:
+    Type: 'AWS::EC2::TransitGateway'
+    Properties:
+      AutoAcceptSharedAttachments: enable
+      DefaultRouteTableAssociation: disable
+      DefaultRouteTablePropagation: disable
+      Description: Transit Gateway
+      DnsSupport: enable
+      Tags:
+        - Key: Name
+          Value: !Sub "${ResourcePrefix}${ProjectName}-tg"
+        - Key: Purpose
+          Value: Networking
+      VpnEcmpSupport: enable
+  ManagementVPCtoTransitGateway:
+    Type: 'AWS::EC2::TransitGatewayAttachment'
+    Properties:
+      SubnetIds:
+        - !Ref ManagementPrivateSubnet1
+        - !Ref ManagementPrivateSubnet2
+      TransitGatewayId: !Ref TransitGateway
+      VpcId: !Ref ManagementVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${ResourcePrefix}${ProjectName}-mgmt-tg-attachment"
+        - Key: Purpose
+          Value: Networking
+  ProductionVPCtoTransitGateway:
+    Type: 'AWS::EC2::TransitGatewayAttachment'
+    Properties:
+      SubnetIds:
+        - !Ref ProductionPrivateSubnet1
+        - !Ref ProductionPrivateSubnet2
+      TransitGatewayId: !Ref TransitGateway
+      VpcId: !Ref ProductionVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${ResourcePrefix}${ProjectName}-prod-tg-attachment"
+        - Key: Purpose
+          Value: Networking
+  StagingVPCtoTransitGateway:
+    Type: 'AWS::EC2::TransitGatewayAttachment'
+    Properties:
+      SubnetIds:
+        - !Ref StagingPrivateSubnet1
+        - !Ref StagingPrivateSubnet2
+      TransitGatewayId: !Ref TransitGateway
+      VpcId: !Ref StagingVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${ResourcePrefix}${ProjectName}-staging-tg-attachment"
+        - Key: Purpose
+          Value: Networking
+  TransitGatewayExternalRouteTable:
+    Type: 'AWS::EC2::TransitGatewayRouteTable'
+    Properties:
+      TransitGatewayId: !Ref TransitGateway
+      Tags:
+        - Key: Name
+          Value: !Sub "${ResourcePrefix}${ProjectName}-tg-external-rt"
+        - Key: Purpose
+          Value: Networking
+  TransitGatewayInternalRouteTable:
+    Type: 'AWS::EC2::TransitGatewayRouteTable'
+    Properties:
+      TransitGatewayId: !Ref TransitGateway
+      Tags:
+        - Key: Name
+          Value: !Sub "${ResourcePrefix}${ProjectName}-tg-internal-rt"
+        - Key: Purpose
+          Value: Networking
+  TransitGatewayExternalRouteTableAssociation:
+    Type: 'AWS::EC2::TransitGatewayRouteTableAssociation'
+    Properties:
+      TransitGatewayAttachmentId: !Ref ManagementVPCtoTransitGateway
+      TransitGatewayRouteTableId: !Ref TransitGatewayExternalRouteTable
+  TransitGatewayProductionVPCRouteTableAssociation:
+    Type: 'AWS::EC2::TransitGatewayRouteTableAssociation'
+    Properties:
+      TransitGatewayAttachmentId: !Ref ProductionVPCtoTransitGateway
+      TransitGatewayRouteTableId: !Ref TransitGatewayInternalRouteTable
+  TransitGatewayStagingVPCRouteTableAssociation:
+    Type: 'AWS::EC2::TransitGatewayRouteTableAssociation'
+    Properties:
+      TransitGatewayAttachmentId: !Ref StagingVPCtoTransitGateway
+      TransitGatewayRouteTableId: !Ref TransitGatewayInternalRouteTable
+  TransitGatewayInternalRouteProp1:
+    Type: 'AWS::EC2::TransitGatewayRouteTablePropagation'
+    Properties:
+      TransitGatewayAttachmentId: !Ref ProductionVPCtoTransitGateway
+      TransitGatewayRouteTableId: !Ref TransitGatewayInternalRouteTable
+  TransitGatewayInternalRouteProp2:
+    Type: 'AWS::EC2::TransitGatewayRouteTablePropagation'
+    Properties:
+      TransitGatewayAttachmentId: !Ref StagingVPCtoTransitGateway
+      TransitGatewayRouteTableId: !Ref TransitGatewayInternalRouteTable
+  TransitGatewayExternalRouteProp1:
+    Type: 'AWS::EC2::TransitGatewayRouteTablePropagation'
+    Properties:
+      TransitGatewayAttachmentId: !Ref ManagementVPCtoTransitGateway
+      TransitGatewayRouteTableId: !Ref TransitGatewayExternalRouteTable
+  TransitGatewayInternalRoute1:
+    Type: 'AWS::EC2::TransitGatewayRoute'
+    Properties:
+      TransitGatewayRouteTableId: !Ref TransitGatewayInternalRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      TransitGatewayAttachmentId: !Ref ManagementVPCtoTransitGateway
+  TransitGatewayExternalRoute1:
+    Type: 'AWS::EC2::TransitGatewayRoute'
+    Properties:
+      TransitGatewayRouteTableId: !Ref TransitGatewayExternalRouteTable
+      DestinationCidrBlock: !Ref ProdVPCCIDRBlock
+      TransitGatewayAttachmentId: !Ref ProductionVPCtoTransitGateway
+  TransitGatewayExternalRoute2:
+    Type: 'AWS::EC2::TransitGatewayRoute'
+    Properties:
+      TransitGatewayRouteTableId: !Ref TransitGatewayExternalRouteTable
+      DestinationCidrBlock: !Ref StagingVPCCIDRBlock
+      TransitGatewayAttachmentId: !Ref StagingVPCtoTransitGateway
+  ManagementPrivateSubnet1Route1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref ManagementPrivateRouteTable1
+      DestinationCidrBlock: !Ref ProdVPCCIDRBlock
+      TransitGatewayId: !Ref TransitGateway
+    DependsOn:
+      - ManagementVPCtoTransitGateway
+  ManagementPrivateSubnet1Route2:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref ManagementPrivateRouteTable1
+      DestinationCidrBlock: !Ref StagingVPCCIDRBlock
+      TransitGatewayId: !Ref TransitGateway
+    DependsOn:
+      - ManagementVPCtoTransitGateway
+  ManagementPrivateSubnet2Route1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref ManagementPrivateRouteTable2
+      DestinationCidrBlock: !Ref ProdVPCCIDRBlock
+      TransitGatewayId: !Ref TransitGateway
+    DependsOn:
+      - ManagementVPCtoTransitGateway
+  ManagementPrivateSubnet2Route2:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref ManagementPrivateRouteTable2
+      DestinationCidrBlock: !Ref StagingVPCCIDRBlock
+      TransitGatewayId: !Ref TransitGateway
+    DependsOn:
+      - ManagementVPCtoTransitGateway
+  ManagementPublicSubnet1Route1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref ManagementPublicRouteTable1
+      DestinationCidrBlock: !Ref ProdVPCCIDRBlock
+      TransitGatewayId: !Ref TransitGateway
+    DependsOn:
+      - ManagementVPCtoTransitGateway
+  ManagementPublicSubnet1Route2:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref ManagementPublicRouteTable1
+      DestinationCidrBlock: !Ref StagingVPCCIDRBlock
+      TransitGatewayId: !Ref TransitGateway
+    DependsOn:
+      - ManagementVPCtoTransitGateway
+  ManagementPublicSubnet2Route1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref ManagementPublicRouteTable2
+      DestinationCidrBlock: !Ref ProdVPCCIDRBlock
+      TransitGatewayId: !Ref TransitGateway
+    DependsOn:
+      - ManagementVPCtoTransitGateway
+  ManagementPublicSubnet2Route2:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref ManagementPublicRouteTable2
+      DestinationCidrBlock: !Ref StagingVPCCIDRBlock
+      TransitGatewayId: !Ref TransitGateway
+    DependsOn:
+      - ManagementVPCtoTransitGateway
+  StagingVPCPrivateRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref StagingPrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      TransitGatewayId: !Ref TransitGateway
+    DependsOn:
+      - StagingVPCtoTransitGateway
+  ProductionVPCPrivateRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref ProductionPrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      TransitGatewayId: !Ref TransitGateway
+    DependsOn:
+      - ProductionVPCtoTransitGateway
+Outputs:
+  Help:
+    Description: For assistance or questions regarding this quickstart please email compliance-accelerator@amazon.com
+    Value: ''

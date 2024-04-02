@@ -1,0 +1,47 @@
+version: "3"
+
+########################################################################################################################
+# A minimal template for a single- or multi-container Docker application deployment, which can be deployed on Elastic
+# Beanstalk.
+#
+# Additional containers can be added to the services section below; your application may also require additional volumes
+# and different/additional environment variables. Note that each container's environment section specifies which
+# variables are passed to the container from the enclosing Elastic Beanstalk environment.
+#
+# One of the serices.app.command lines should be un-commented. Both assume that an SSL certificate and key are available
+# in the application's Docker image, so that communication between the application server(s) and their load balancer can
+# be encrypted.
+########################################################################################################################
+
+########################################################################################################################
+# Parameters:
+#
+# {aws-account-id}: The ID of your AWS account, typically a 12-digit numeral
+# {ecr-repo-name}: The ECR repository name, which is typically the application name
+# {container-name}: The name you want to use for the application's main Docker container, which is also typically the
+#   application name
+########################################################################################################################
+
+services:
+  app:
+    image: {aws-account-id}.dkr.ecr.us-west-2.amazonaws.com/{ecr-repo-name}:staging
+
+    # Command for starting a Node application. The port is determined by the application source code; here we assume it's 8443.
+    # The application's source code or Dockerfile should handle generating or importing an SSL certificate and key.
+    # command: node dist/bin/www
+
+    # Command for starting a Python FastAPI application with an HTTPS server on port 8443.
+    # We assume that the application's Dockerfile includes code that generates or imports an SSL certificate and key.
+    # command: bash -c "uvicorn mavedb.server_main:app --host 0.0.0.0 --port 8443 --ssl-keyfile=./ssl/server.key --ssl-certfile=./ssl/server.cert"
+
+    container_name: {container-name}
+    depends_on:
+      - seqrepo
+    ports:
+      - "443:8443"
+    restart: unless-stopped
+    environment:
+      DB_DATABASE_NAME: ${DB_DATABASE_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USERNAME: ${DB_USERNAME}

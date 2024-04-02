@@ -1,0 +1,28 @@
+########################################################################################################################
+# To use this file for deployment, you should have an AWS CLI profile named {project}-prod-deployment that has
+# sufficient permissions.
+#
+# Parameters:
+#
+# {project}: The project name
+# {module}: The module name within the project, e.g. "api," "worker," or something application-specific
+########################################################################################################################
+
+branch-defaults:
+  default:
+    environment: {project}-staging-{module}-env
+    group_suffix: null
+global:
+  application_name: {project}-staging-{module}-app
+  branch: null
+  default_ec2_keyname: {project}-staging-eb-root-keypair
+  default_platform: Docker running on 64bit Amazon Linux 2
+  default_region: us-west-2
+  include_git_submodules: true
+  instance_profile: null
+  platform_name: null
+  platform_version: null
+  profile: {project}-staging-deployment
+  repository: null
+  sc: null
+  workspace_type: Application
