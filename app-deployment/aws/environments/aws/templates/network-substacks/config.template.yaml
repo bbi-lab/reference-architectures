@@ -287,7 +287,7 @@ Resources:
       Handler: index.main_handler
       MemorySize: 128
       Role: !GetAtt LambdaExecutionRole.Arn
-      Runtime: python3.7
+      Runtime: python3.12
       Timeout: 10
   CreateConfigRecorderLambda:
     Type: "AWS::Lambda::Function"
@@ -362,7 +362,7 @@ Resources:
       Handler: index.main_handler
       MemorySize: 128
       Role: !GetAtt LambdaExecutionRole.Arn
-      Runtime: python3.7
+      Runtime: python3.12
       Timeout: 10
   LambdaExecutionRole:
     Metadata:
