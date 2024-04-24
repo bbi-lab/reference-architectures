@@ -60,7 +60,7 @@ AWS console > EC2 > Instances > Launch instances
     - **Key pair name:** `{project}-prod-bastion-1-ec2-root-keypair`
   - Network settings
     - **VPC:** {project}-mgmt-vpc
-    - **Subnet:** {project}-mgmt-private-subnet-1
+    - **Subnet:** {project}-mgmt-public-subnet-1
     - **Auto-assign public IP:** Enable
     - **Firewall (security groups):** Select existing security group
     - **Security group:** {project}-bastion-sg
