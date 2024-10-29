@@ -9,7 +9,8 @@ All steps should be performed in the `us-west-2` (Oregon) region except where no
 This guide does not include passwords or other secrets, but it does assume the following account-specific parameters:
 
 - {aws-account-id}: The ID of your AWS account, typically a 12-digit numeral
-- {project}: The project name
+- {organization}: The organization name, in a kebab-cased form suitable for use in identifiers
+- {project}: The project name, in a kebab-cased form suitable for use in identifiers
 - {postgres-password-prod}: The password for the production database's root (`postgres`) user
 
 ## 1. EC2 key pair for bastion hosts
@@ -90,7 +91,7 @@ AWS console > Amazon S3 > Buckets > Create bucket
   - General configuration
     - **AWS region:** us-west-2
     - **Bucket type:** General purpose
-    - **Bucket name:** `bbi-{project}-app-logs`
+    - **Bucket name:** `{organization}-{project}-app-logs`
   - **Object Ownership**: ACLs disabled
   - Block Public Access settings for this bucket
     - **Block all public access:** Yes
@@ -161,8 +162,8 @@ AWS console > Identity and Access Management (IAM) > Access management > Policie
             "s3:ListBucket"
           ],
           "Resource": [
-            "arn:aws:s3:::bbi-{project}-app-logs/*",
-            "arn:aws:s3:::bbi-{project}-app-logs"
+            "arn:aws:s3:::{organization}-{project}-app-logs/*",
+            "arn:aws:s3:::{organization}-{project}-app-logs"
           ]
         },
         {
@@ -207,8 +208,8 @@ AWS console > Identity and Access Management (IAM) > Access management > Policie
             "s3:ListBucket"
           ],
           "Resource": [
-            "arn:aws:s3:::bbi-{project}-app-logs/*",
-            "arn:aws:s3:::bbi-{project}-app-logs"
+            "arn:aws:s3:::{organization}-{project}-app-logs/*",
+            "arn:aws:s3:::{organization}-{project}-app-logs"
           ]
         },
         {
@@ -502,7 +503,7 @@ AWS console > Elastic Beanstalk > Create environment
     - (None)
   - Log files access
     - **Store logs:** Enabled
-    - **S3 bucket:** bbi-{project}-app-logs
+    - **S3 bucket:** {organization}-{project}-app-logs
     - **Prefix:** `prod-api/`
 - Configure updates, monitoring, and logging
   - Monitoring
@@ -598,7 +599,7 @@ AWS console > Elastic Beanstalk > Create environment
     - (None)
   - Log files access
     - **Store logs:** Enabled
-    - **S3 bucket:** bbi-{project}-app-logs
+    - **S3 bucket:** {organization}-{project}-app-logs
     - **Prefix:** `staging-api` <mark>Differs from production</mark>
 - Configure updates, monitoring, and logging
   - Monitoring
@@ -823,7 +824,7 @@ AWS console > Amazon S3 > Create bucket
   - General configuration
     - **AWS Region**: us-west-2
     - **Bucket type**: General purpose
-    - **Bucket name**: `bbi-{project}-prod-ui`
+    - **Bucket name**: `{organization}-{project}-prod-ui`
   - **Object Ownership**: ACLs disabled
   - Block Public Access settings for this bucket
     - [All disabled, allowing public access]
@@ -849,7 +850,7 @@ Choose the bucket and navigate to Permissions. Add a bucket policy:
             "Effect": "Allow",
             "Principal": "*",
             "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::bbi-{project}-prod-ui/*"
+            "Resource": "arn:aws:s3:::{organization}-{project}-prod-ui/*"
         }
     ]
 }
@@ -863,7 +864,7 @@ AWS console > Amazon S3 > Create bucket
   - General configuration
     - **AWS Region**: us-west-2
     - **Bucket type**: General purpose
-    - **Bucket name**: `bbi-{project}-staging-ui` <mark>Differs from production</mark>
+    - **Bucket name**: `{organization}-{project}-staging-ui` <mark>Differs from production</mark>
   - **Object Ownership**: ACLs disabled
   - Block Public Access settings for this bucket
     - [All disabled, allowing public access]
@@ -889,7 +890,7 @@ Choose the bucket and navigate to Permissions. Add a bucket policy:
             "Effect": "Allow",
             "Principal": "*",
             "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::bbi-{project}-staging-ui/*"
+            "Resource": "arn:aws:s3:::{organization}-{project}-staging-ui/*"
         }
     ]
 }
@@ -901,9 +902,9 @@ AWS console > CloudFront > Create distribution
 
 - Create distribution
   - Origin
-    - **Origin domain**: bbi-{project}-prod-ui.s3.us-west-2.amazonaws.com
+    - **Origin domain**: {organization}-{project}-prod-ui.s3.us-west-2.amazonaws.com
     - **Origin path**: [blank]
-    - **Name**: `bbi-{project}-prod-ui.s3.us-west-2.amazonaws.com`
+    - **Name**: `{organization}-{project}-prod-ui.s3.us-west-2.amazonaws.com`
     - **Origin access**: Public
     - **Enable Origin Shield**: No
   - Default cache behavior
@@ -933,9 +934,9 @@ AWS console > CloudFront > Create distribution
 
 - Create distribution
   - Origin
-    - **Origin domain**: bbi-{project}-staging-ui.s3.us-west-2.amazonaws.com <mark>Differs from production</mark>
+    - **Origin domain**: {organization}-{project}-staging-ui.s3.us-west-2.amazonaws.com <mark>Differs from production</mark>
     - **Origin path**: [blank]
-    - **Name**: `bbi-{project}-staging-ui.s3.us-west-2.amazonaws.com` <mark>Differs from production</mark>
+    - **Name**: `{organization}-{project}-staging-ui.s3.us-west-2.amazonaws.com` <mark>Differs from production</mark>
     - **Origin access**: Public
     - **Enable Origin Shield**: No
   - Default cache behavior

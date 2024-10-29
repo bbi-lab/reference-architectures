@@ -24,7 +24,7 @@ To submit code for this Quick Start, see the [AWS Quick Start Contributor's Kit]
 
 To deploy this stack, first create an S3 bucket to store the templates and submodules (see https://aws-quickstart.github.io/option1.html)
 
-The bucket name should match the `QSS3BucketName` specified in the entrypoint template (default `bbi-{project}-aws-templates`) and bucket region should be `QSS3BucketRegion` (default `us-west-2`). Add a subfolder matching `QSS3KeyPrefix` (default `{project}-network/`). These default values can be changed at time of deployment.
+The bucket name should match the `QSS3BucketName` specified in the entrypoint template (default `{organization}-{project}-aws-templates`) and bucket region should be `QSS3BucketRegion` (default `us-west-2`). Add a subfolder matching `QSS3KeyPrefix` (default `{project}-network/`). These default values can be changed at time of deployment.
 
 The bucket should have the following structure and contents:
 ```
