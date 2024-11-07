@@ -52,7 +52,7 @@ HostName 34.211.167.138
 User {bastion-username}
 IdentitiesOnly yes
 IdentityFile ~/.ssh/{project}-bastion-{bastion-username}.pem
-LocalForward localhost:5433 {project}-prod-db.crqhdizsvjux.us-west-2.rds.amazonaws.com:5432
+LocalForward localhost:5433 {db-host}:5432
 ```
 
 Now you can open an SSH tunnel to the database:
