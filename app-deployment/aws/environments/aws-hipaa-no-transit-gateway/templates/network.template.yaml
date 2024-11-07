@@ -1,0 +1,423 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS network environment for web applications without a separate management VPC
+Metadata:
+  QuickStartDocumentation:
+    EntrypointName: "Parameters for deploying an AWS network environment for web applications without a separate management VPC"
+  LintSpellExclude:
+    - CloudWatch
+    - CloudTrail
+    - No
+    - Config
+  cfn-lint: { config: { ignore_checks: [ W9006 ] } }
+  Identifier:
+    Value: main
+  Input:
+    Description: Input of all required parameters in nested stacks
+  Output:
+    Description: N/A
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Project configuration
+      Parameters:
+      - ProjectName
+      - GlobalResourcePrefix
+      - ResourcePrefix
+    - Label:
+        default: AWS Config configuration
+      Parameters:
+      - AWSConfigARN
+      - CreateConfigRecorder
+      - CreateConfigDeliveryChannel
+      - ConfigLambdaLogGroupRetention
+    - Label:
+        default: AWS logging configuration
+      Parameters:
+      - SNSAlarmEmail
+      - LifecycleExpirationDays
+      - LifecycleTransitionStandardIADays
+      - LifecycleTransitionGlacierDays
+      - CloudTrailLogRetentionDays
+    - Label:
+        default: Staging VPC configuration
+      Parameters:
+      - StagingVPCCIDRBlock
+      - StagingVPCPrivateSubnet1
+      - StagingVPCPrivateSubnet2
+      - StagingVPCPublicSubnet1
+      - StagingVPCPublicSubnet2
+      - StagingVPCFlowLogLogGroupRetention
+    - Label:
+        default: Production VPC configuration
+      Parameters:
+      - ProdVPCCIDRBlock
+      - ProdVPCPrivateSubnet1
+      - ProdVPCPrivateSubnet2
+      - ProdVPCPublicSubnet1
+      - ProdVPCPublicSubnet2
+      - ProdVPCFlowLogLogGroupRetention
+    - Label:
+        default: Management VPC configuration
+      Parameters:
+      - MgmtVPCCIDRBlock
+      - MgmtVPCPrivateSubnet1
+      - MgmtVPCPrivateSubnet2
+      - MgmtVPCPublicSubnet1
+      - MgmtVPCPublicSubnet2
+      - MgmtVPCFlowLogLogGroupRetention
+    - Label:
+        default: AWS Quick Start configuration
+      Parameters:
+      - TemplateS3BucketName
+      - Template3BucketRegion
+      - TemplateS3KeyPrefix
+    ParameterLabels:
+      ProjectName:
+        default: Project name for use in resource names and tags
+      GlobalResourcePrefix:
+        default: Prefix for globally unique resource names like S3 buckets
+      ResourcePrefix:
+        default: Prefix for all resource names except globally unique names
+      AWSConfigARN:
+        default: AWS Config service-linked-role ARN
+      CreateConfigRecorder:
+        default: AWS Config recorder
+      CreateConfigDeliveryChannel:
+        default: AWS Config delivery channel
+      ConfigLambdaLogGroupRetention:
+        default: AWS Config lambda log retention
+      SNSAlarmEmail:
+        default: SNS alarm-notification email address
+      LifecycleExpirationDays:
+        default: S3 Lifecycle expiration days
+      LifecycleTransitionStandardIADays:
+        default: S3 Lifecycle transition-to-standard-IA days
+      LifecycleTransitionGlacierDays:
+        default: S3 Lifecycle transition-to-S3-Glacier days
+      CloudTrailLogRetentionDays:
+        default: CloudTrail log-retention days
+      StagingVPCCIDRBlock:
+        default: Staging VPC CIDR block
+      StagingVPCPrivateSubnet1:
+        default: Staging VPC private subnet 1 CIDR block
+      StagingVPCPrivateSubnet2:
+        default: Staging VPC private subnet 2 CIDR block
+      StagingVPCPublicSubnet1:
+        default: Staging VPC public subnet 1 CIDR block
+      StagingVPCPublicSubnet2:
+        default: Staging VPC public subnet 2 CIDR block
+      StagingVPCFlowLogLogGroupRetention:
+        default: Staging VPC flow-log log-group retention
+      ProdVPCCIDRBlock:
+        default: Production VPC CIDR block
+      ProdVPCPrivateSubnet1:
+        default: Production private subnet 1 CIDR block
+      ProdVPCPrivateSubnet2:
+        default: Production private subnet 2 CIDR block
+      ProdVPCPublicSubnet1:
+        default: Production public subnet 1 CIDR block
+      ProdVPCPublicSubnet2:
+        default: Production public subnet 2 CIDR block
+      ProdVPCFlowLogLogGroupRetention:
+        default: Production VPC flow-log log-group retention
+      MgmtVPCCIDRBlock:
+        default: Management VPC CIDR block
+      MgmtVPCPrivateSubnet1:
+        default: Management private subnet 1 CIDR block
+      MgmtVPCPrivateSubnet2:
+        default: Management private subnet 2 CIDR block
+      MgmtVPCPublicSubnet1:
+        default: Management public subnet 1 CIDR block
+      MgmtVPCPublicSubnet2:
+        default: Management public subnet 2 CIDR block
+      MgmtVPCFlowLogLogGroupRetention:
+        default: Management VPC flow-log log-group retention
+      TemplateS3BucketName:
+        default: S3 bucket name for CloudFormation templates
+      Template3BucketRegion:
+        default: S3 bucket Region for CloudFormation templates
+      TemplateS3KeyPrefix:
+        default: S3 key prefix for CloudFormation templates
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name for use in resource names and tags.
+    Default: "project"
+  GlobalResourcePrefix:
+    Type: String
+    Description: Prefix for globally unique resource names like S3 buckets.
+    Default: "organization-"
+  ResourcePrefix:
+    Type: String
+    Description: Prefix for all resource names except globally unique names.
+    Default: ""
+  AWSConfigARN:
+    Type: String
+    Default: ''
+    Description: Amazon Resource Name for the AWS Config service-linked role.
+  LifecycleExpirationDays:
+    Type: Number
+    Default: 2555
+    Description: Number of days after objects are created that Amazon S3 automatically deletes them.
+  LifecycleTransitionStandardIADays:
+    Type: Number
+    Default: 90
+    Description: Number of days after objects are created that Amazon S3 automatically transitions them to the S3 Standard-IA storage class.
+  LifecycleTransitionGlacierDays:
+    Type: Number
+    Default: 180
+    Description: Number of days after objects are created that Amazon S3 automatically transitions them to the S3 Glacier storage class.
+  SNSAlarmEmail:
+    Type: String
+    Default: ''
+    Description: Amazon SNS notification email address for CloudWatch alarms.
+  CloudTrailLogRetentionDays:
+    Type: Number
+    Default: 90
+    Description: Number of days that CloudTrail logs are retained.
+  StagingVPCCIDRBlock:
+    Type: String
+    Default: 172.18.0.0/16
+    Description: CIDR block for the staging VPC.
+  StagingVPCPrivateSubnet1:
+    Type: String
+    Default: 172.18.11.0/24
+    Description: CIDR block for private subnet 1 in the staging VPC.
+  StagingVPCPrivateSubnet2:
+    Type: String
+    Default: 172.18.12.0/24
+    Description: CIDR block for private subnet 2 in the staging VPC.
+  StagingVPCPublicSubnet1:
+    Type: String
+    Default: 172.18.1.0/24
+    Description: CIDR block for public subnet 1 in the staging VPC.
+  StagingVPCPublicSubnet2:
+    Type: String
+    Default: 172.18.2.0/24
+    Description: CIDR block for public subnet 2 in the staging VPC.
+  StagingVPCFlowLogLogGroupRetention:
+    Type: Number
+    Default: 90
+    Description: Number of days that the flow-log log group is retained for the staging VPC.
+  ProdVPCCIDRBlock:
+    Type: String
+    Default: 172.17.0.0/16
+    Description: CIDR block for the production VPC.
+  ProdVPCPrivateSubnet1:
+    Type: String
+    Default: 172.17.11.0/24
+    Description: CIDR block for private subnet 1 in the production VPC.
+  ProdVPCPrivateSubnet2:
+    Type: String
+    Default: 172.17.12.0/24
+    Description: CIDR block for private subnet 2 in the production VPC.
+  ProdVPCPublicSubnet1:
+    Type: String
+    Default: 172.17.1.0/24
+    Description: CIDR block for public subnet 1 in the production VPC.
+  ProdVPCPublicSubnet2:
+    Type: String
+    Default: 172.17.2.0/24
+    Description: CIDR block for public subnet 2 in the production VPC.
+  ProdVPCFlowLogLogGroupRetention:
+    Type: Number
+    Default: 90
+    Description: Number of days that the flow-log log group is retained for the production VPC.
+  MgmtVPCCIDRBlock:
+    Type: String
+    Default: 172.16.0.0/16
+    Description: CIDR block for the management VPC.
+  MgmtVPCPrivateSubnet1:
+    Type: String
+    Default: 172.16.11.0/24
+    Description: CIDR block for private subnet 1 in the management VPC.
+  MgmtVPCPrivateSubnet2:
+    Type: String
+    Default: 172.16.12.0/24
+    Description: CIDR block for private subnet 2 in the management VPC.
+  MgmtVPCPublicSubnet1:
+    Type: String
+    Default: 172.16.1.0/24
+    Description: CIDR block for public subnet 1 in the management VPC.
+  MgmtVPCPublicSubnet2:
+    Type: String
+    Default: 172.16.2.0/24
+    Description: CIDR block for public subnet 2 in the management VPC.
+  MgmtVPCFlowLogLogGroupRetention:
+    Type: Number
+    Default: 90
+    Description: Number of days that the flow-log log group is retained for the management VPC.
+  CreateConfigRecorder:
+    Type: String
+    Default: 'AutoDetect'
+    AllowedValues: [ 'Yes', 'No', 'AutoDetect' ]
+    Description: Choose "No" if you've already used AWS Config in this Region.
+  CreateConfigDeliveryChannel:
+    Type: String
+    Default: 'AutoDetect'
+    AllowedValues: [ 'Yes', 'No', 'AutoDetect' ]
+    Description: Choose "No" if you've already used AWS Config in this Region.
+  ConfigLambdaLogGroupRetention:
+    Type: Number
+    Default: 90
+    Description: Number of days that log groups are retained for AWS Config lambda functions
+  TemplateS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-.]*[0-9a-zA-Z])*$
+    ConstraintDescription: The bucket name can include numbers, lowercase
+      letters, uppercase letters, and hyphens (-). It cannot start or end with a
+      hyphen (-).
+    Description: Name of the S3 bucket for your CloudFormation templates.
+      This name can include numbers, lowercase letters,
+      uppercase letters, and hyphens, but do not start or end with a hyphen (-).
+      See https://aws-quickstart.github.io/option1.html.
+    Type: String
+  Template3BucketRegion:
+    Default: us-east-2
+    Description: AWS Region where the CloudFormation templates are hosted.
+      Changing this Region updates code references to point to a new template location.
+    Type: String
+  TemplateS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/]*$
+    ConstraintDescription: The S3 key prefix for CloudFormation templates can include numbers, lowercase letters,
+      uppercase letters, hyphens (-), and forward slashes (/). The prefix should
+      end with a forward slash (/).
+    Description: S3 key prefix that is used to simulate a directory for the CloudFormation tempaltes.
+      This prefix can include numbers, lowercase
+      letters, uppercase letters, hyphens (-), and forward slashes (/). End with
+      a forward slash. See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html
+      and https://aws-quickstart.github.io/option1.html.
+    Type: String
+Resources:
+  LogGroupKey:
+    Type: 'AWS::KMS::Key'
+    Properties:
+      Description: A symmetric encryption KMS key for use with Log Groups
+      EnableKeyRotation: true
+      PendingWindowInDays: 20
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: !Sub "${ResourcePrefix}${ProjectName}-loggroup-key-policy"
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow use of the key
+            Effect: Allow
+            Principal:
+              Service: !Sub 'logs.${AWS::Region}.amazonaws.com'
+            Action:
+              - 'kms:Encrypt*'
+              - 'kms:Decrypt*'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:Describe*'
+            Resource: '*'
+            Condition:
+              ArnLike:
+                "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+  LogGroupKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/${ResourcePrefix}${ProjectName}-loggroup-key"
+      TargetKeyId: !Ref LogGroupKey
+  ConfigStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL:
+        !Sub
+          - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${S3KeyPrefix}templates/network-substacks/config.template.yaml'
+          - S3Region: !Ref Template3BucketRegion
+            S3Bucket: !Ref TemplateS3BucketName
+            S3KeyPrefix: !Ref TemplateS3KeyPrefix
+      TimeoutInMinutes: 60
+      Parameters:
+        ProjectName: !Ref ProjectName
+        GlobalResourcePrefix: !Ref GlobalResourcePrefix
+        ResourcePrefix: !Ref ResourcePrefix
+        AWSConfigARN: !Ref AWSConfigARN
+        CreateConfigRecorder: !Ref CreateConfigRecorder
+        CreateConfigDeliveryChannel: !Ref CreateConfigDeliveryChannel
+        ConfigLambdaLogGroupRetention: !Ref ConfigLambdaLogGroupRetention
+        ConfigLogGroupKeyARN: !GetAtt LogGroupKey.Arn
+        TemplateS3BucketName: !Ref TemplateS3BucketName
+        QSS3KeyPrefix: !Ref TemplateS3KeyPrefix
+  LogStack:
+    Type: 'AWS::CloudFormation::Stack'
+    DependsOn: ConfigStack
+    Properties:
+      TemplateURL:
+        !Sub
+          - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${S3KeyPrefix}templates/network-substacks/logging.template.yaml'
+          - S3Region: !Ref Template3BucketRegion
+            S3Bucket: !Ref TemplateS3BucketName
+            S3KeyPrefix: !Ref TemplateS3KeyPrefix
+      TimeoutInMinutes: 60
+      Parameters:
+        ProjectName: !Ref ProjectName
+        GlobalResourcePrefix: !Ref GlobalResourcePrefix
+        ResourcePrefix: !Ref ResourcePrefix
+        SNSAlarmEmail: !Ref SNSAlarmEmail
+        LifecycleExpirationDays: !Ref LifecycleExpirationDays
+        LifecycleTransitionStandardIADays: !Ref LifecycleTransitionStandardIADays
+        LifecycleTransitionGlacierDays: !Ref LifecycleTransitionGlacierDays
+        CloudTrailLogRetentionDays: !Ref CloudTrailLogRetentionDays
+        LoggingLogGroupKeyARN: !GetAtt LogGroupKey.Arn
+  StagingVPCStack:
+    Type: 'AWS::CloudFormation::Stack'
+    DependsOn: [ ConfigStack, LogStack ]
+    Properties:
+      TemplateURL:
+        !Sub
+          - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${S3KeyPrefix}templates/network-substacks/app-vpc.template.yaml'
+          - S3Region: !Ref Template3BucketRegion
+            S3Bucket: !Ref TemplateS3BucketName
+            S3KeyPrefix: !Ref TemplateS3KeyPrefix
+      TimeoutInMinutes: 60
+      Parameters:
+        ProjectName: !Ref ProjectName
+        GlobalResourcePrefix: !Ref GlobalResourcePrefix
+        ResourcePrefix: !Ref ResourcePrefix
+        Environment: staging
+        EnvironmentDescription: Staging
+        VPCCIDRBlock: !Ref StagingVPCCIDRBlock
+        PrivateSubnet1CidrBlock: !Ref StagingVPCPrivateSubnet1
+        PrivateSubnet2CidrBlock: !Ref StagingVPCPrivateSubnet2
+        PublicSubnet1CidrBlock: !Ref StagingVPCPublicSubnet1
+        PublicSubnet2CidrBlock: !Ref StagingVPCPublicSubnet2
+        FlowLogLogGroupRetention: !Ref StagingVPCFlowLogLogGroupRetention
+        LogGroupKeyARN: !GetAtt LogGroupKey.Arn
+  ProdVPCStack:
+    Type: 'AWS::CloudFormation::Stack'
+    DependsOn: [ ConfigStack, LogStack ]
+    Properties:
+      TemplateURL:
+        !Sub
+          - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${S3KeyPrefix}templates/network-substacks/app-vpc.template.yaml'
+          - S3Region: !Ref Template3BucketRegion
+            S3Bucket: !Ref TemplateS3BucketName
+            S3KeyPrefix: !Ref TemplateS3KeyPrefix
+      TimeoutInMinutes: 60
+      Parameters:
+        ProjectName: !Ref ProjectName
+        GlobalResourcePrefix: !Ref GlobalResourcePrefix
+        ResourcePrefix: !Ref ResourcePrefix
+        Environment: prod
+        EnvironmentDescription: Production
+        VPCCIDRBlock: !Ref ProdVPCCIDRBlock
+        PrivateSubnet1CidrBlock: !Ref ProdVPCPrivateSubnet1
+        PrivateSubnet2CidrBlock: !Ref ProdVPCPrivateSubnet2
+        PublicSubnet1CidrBlock: !Ref ProdVPCPublicSubnet1
+        PublicSubnet2CidrBlock: !Ref ProdVPCPublicSubnet2
+        FlowLogLogGroupRetention: !Ref ProdVPCFlowLogLogGroupRetention
+        LogGroupKeyARN: !GetAtt LogGroupKey.Arn
+Outputs:
+  TemplateType:
+    Value: HIPAA compliant web application environment
+  TemplateVersion:
+    Value: 1.0
+  Help:
+    Description: AWS network environment for HIPAA-compliant web applications without a separate management VPC
+    Value: ''

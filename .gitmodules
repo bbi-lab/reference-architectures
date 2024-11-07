@@ -1,3 +1,7 @@
 [submodule "app-deployment/aws/environments/aws-hipaa/submodules/aws-config-rules"]
 	path = app-deployment/aws/environments/aws-hipaa/submodules/aws-config-rules
 	url = https://github.com/awslabs/aws-config-rules
+
+[submodule "app-deployment/aws/environments/aws-hipaa-no-transit-gateway/submodules/aws-config-rules"]
+	path = app-deployment/aws/environments/aws-hipaa-no-transit-gateway/submodules/aws-config-rules
+	url = https://github.com/awslabs/aws-config-rules

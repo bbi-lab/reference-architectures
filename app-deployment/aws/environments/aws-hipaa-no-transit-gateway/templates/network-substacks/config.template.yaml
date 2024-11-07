@@ -1,0 +1,408 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS Config resources for a HIPAA-ready environment
+Metadata:
+  Identifier:
+    Value: main
+  Input:
+    Description: Input of all required parameters in nested stacks
+  Output:
+    Description: N/A
+  cfn-lint: { config: { ignore_checks: [ W3011, W9006 ] } }
+  LintSpellExclude:
+    - CloudWatch
+    - CloudTrail
+    - No
+    - Config
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Project configuration
+      Parameters:
+      - ProjectName
+      - GlobalResourcePrefix
+      - ResourcePrefix
+    - Label:
+        default: AWS config configuration
+      Parameters:
+      - AWSConfigARN
+      - CreateConfigRecorder
+      - CreateConfigDeliveryChannel
+      - ConfigLambdaLogGroupRetention
+      - ConfigLogGroupKeyARN
+    - Label:
+        default: AWS quick-start configuration
+      Parameters:
+      - QSS3BucketName
+      - QSS3KeyPrefix
+    ParameterLabels:
+      ProjectName:
+        default: Project name for use in resource names and tags
+      GlobalResourcePrefix:
+        default: Prefix for globally unique resource names like S3 buckets
+      ResourcePrefix:
+        default: Prefix for all resource names except globally unique names
+      AWSConfigARN:
+        default: AWS config service linked role ARN
+      CreateConfigRecorder:
+        default: AWS config recorder
+      CreateConfigDeliveryChannel:
+        default: AWS config delivery channel
+      ConfigLambdaLogGroupRetention:
+        default: Config lambda log group retention days
+      ConfigLogGroupKeyARN:
+        default: Log Groups KMS Key ARN
+      QSS3BucketName:
+        default: Quick Start S3 bucket name
+      QSS3KeyPrefix:
+        default: Quick Start S3 key prefix
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name for use in resource names and tags.
+  GlobalResourcePrefix:
+    Type: String
+    Description: Prefix for globally unique resource names like S3 buckets.
+  ResourcePrefix:
+    Type: String
+    Description: Prefix for all resource names except globally unique names.
+  AWSConfigARN:
+    Type: String
+    Description: AWS config service linked role ARN.
+  CreateConfigRecorder:
+    Type: String
+    Default: 'Yes'
+    AllowedValues: [ 'Yes', 'No', 'AutoDetect' ]
+    Description: Choose "No" if you already used AWS Config in this region.
+  CreateConfigDeliveryChannel:
+    Type: String
+    Default: 'Yes'
+    AllowedValues: [ 'Yes', 'No', 'AutoDetect' ]
+    Description: Choose "No" if you already used AWS Config in this region.
+  ConfigLambdaLogGroupRetention:
+    Type: String
+    Description: Config lambda functions log group retention days.
+  ConfigLogGroupKeyARN:
+    Type: String
+    Description: KMS Key ARN for encrypting CloudWatch Log Groups.
+  QSS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-.]*[0-9a-zA-Z])*$
+    ConstraintDescription: Quick Start bucket name can include numbers, lowercase
+      letters, uppercase letters, periods (.), and hyphens (-). It cannot start or
+      end with a hyphen (-).
+    Description: S3 bucket name for the Quick Start assets. Quick Start bucket name
+      can include numbers, lowercase letters, uppercase letters, and hyphens (-).
+      It cannot start or end with a hyphen (-).
+    Type: String
+  QSS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/]*$
+    ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
+      uppercase letters, hyphens (-), and forward slash (/).
+    Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
+      can include numbers, lowercase letters, uppercase letters, hyphens (-), and
+      forward slash (/).
+    Type: String
+Conditions:
+  CreateConfigRecorderYes: !Equals [!Ref CreateConfigRecorder, 'Yes']
+  CreateConfigRecorderAutoDetect: !Equals [!Ref CreateConfigRecorder, 'AutoDetect']
+  CreateConfigDeliveryChannelYes: !Equals [!Ref CreateConfigDeliveryChannel, 'Yes' ]
+  CreateConfigDeliveryChannelAutoDetect: !Equals [!Ref CreateConfigDeliveryChannel, 'AutoDetect' ]
+  CreateLambdaRole: !Or
+    - !Equals [!Ref CreateConfigRecorder, 'AutoDetect']
+    - !Equals [!Ref CreateConfigDeliveryChannel, 'AutoDetect' ]
+  UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
+Resources:
+  AWSConfigLoggingBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "${GlobalResourcePrefix}${ProjectName}-config-logging"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: Name
+          Value: !Sub "${GlobalResourcePrefix}${ProjectName}-config-logging"
+        - Key: Purpose
+          Value: Security
+  AWSConfigBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    DeletionPolicy: Retain
+    Properties:
+      Bucket: !Ref AWSConfigLoggingBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Id: AWSConfigAccessToBucket
+        Statement:
+          - Sid: AWSConfigBucketPermissionsCheck
+            Effect: Allow
+            Principal:
+              Service: config.amazonaws.com
+            Action: 's3:GetBucketAcl'
+            Resource: !GetAtt
+              - AWSConfigLoggingBucket
+              - Arn
+          - Sid: AWSConfigBucketDelivery
+            Effect: Allow
+            Principal:
+              Service: config.amazonaws.com
+            Action: 's3:PutObject'
+            Resource: !Join
+              - ''
+              - - !GetAtt
+                  - AWSConfigLoggingBucket
+                  - Arn
+                - /*
+            Condition:
+              StringEquals:
+                's3:x-amz-acl': bucket-owner-full-control
+  AWSConfigDeliveryChannel:
+    Type: 'AWS::Config::DeliveryChannel'
+    Condition: CreateConfigDeliveryChannelYes
+    Properties:
+      S3BucketName: !Ref AWSConfigLoggingBucket
+      Name: !Sub "default-${AWS::Region}-${AWS::StackName}"
+  AWSConfigConfigurationRecorder:
+    Type: 'AWS::Config::ConfigurationRecorder'
+    Condition: CreateConfigRecorderYes
+    Properties:
+      RoleARN: !Ref AWSConfigARN
+      Name: !Sub "default-${AWS::Region}-${AWS::StackName}"
+  AWSConfigHIPAAConformancePack:
+    Type: 'AWS::Config::ConformancePack'
+    Metadata:
+      cfn-lint: { config: { ignore_checks: [ W1001 ] } }
+      DependsOn:
+        - !If [ CreateConfigRecorderYes, !Ref AWSConfigConfigurationRecorder, !Ref "AWS::NoValue" ]
+        - !If [ CreateConfigRecorderAutoDetect, !Ref ConfigurationRecorder, !Ref "AWS::NoValue" ]
+        - !If [ CreateConfigDeliveryChannelYes, !Ref AWSConfigDeliveryChannel, !Ref "AWS::NoValue" ]
+        - !If [ CreateConfigDeliveryChannelAutoDetect, !Ref DeliveryChannel, !Ref "AWS::NoValue" ]
+    Properties:
+      ConformancePackName: !Sub "${GlobalResourcePrefix}${ProjectName}-config-hipaa-conformance-pack"
+      TemplateS3Uri: !Sub
+      - 's3://${S3Bucket}/${QSS3KeyPrefix}submodules/aws-config-rules/aws-config-conformance-packs/Operational-Best-Practices-for-HIPAA-Security.yaml'
+      - S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+        QSS3KeyPrefix: !Ref QSS3KeyPrefix
+  ConfigurationRecorder:
+    Type: Custom::CreateConfigRecorder
+    Condition: CreateConfigRecorderAutoDetect
+    Properties:
+      ServiceToken: !GetAtt CreateConfigRecorderLambda.Arn
+      Region: !Ref "AWS::Region"
+      ConfigRole: !Ref "AWSConfigARN"
+  DeliveryChannel:
+    Metadata:
+      cfn-lint: { config: { ignore_checks: [ W1001 ] } }
+      DependsOn: !Ref ConfigurationRecorder
+    Condition: CreateConfigDeliveryChannelAutoDetect
+    Type: Custom::CreateConfigDeliveryChannel
+    Properties:
+      ServiceToken: !GetAtt CreateConfigDeliveryChannelLambda.Arn
+      Region: !Ref "AWS::Region"
+      Operation: 'CheckDeliveryChannel'
+      S3Bucket: !Ref AWSConfigLoggingBucket
+  ConfigDeliveryChannelLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda${ResourcePrefix}${ProjectName}-config-delivery-loggroup"
+      KmsKeyId: !Ref ConfigLogGroupKeyARN
+      RetentionInDays: !Ref ConfigLambdaLogGroupRetention
+  ConfigRecorderLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda${ResourcePrefix}${ProjectName}-config-recorder-loggroup"
+      KmsKeyId: !Ref ConfigLogGroupKeyARN
+      RetentionInDays: !Ref ConfigLambdaLogGroupRetention
+  CreateConfigDeliveryChannelLambda:
+    Type: "AWS::Lambda::Function"
+    DependsOn: ConfigDeliveryChannelLambdaLogGroup
+    Condition: CreateConfigDeliveryChannelAutoDetect
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}${ProjectName}-config-delivery-lambda"
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import boto3
+          import string
+          from botocore.exceptions import ClientError
+          def main_handler(event, context):
+              responseData = {}
+              if event['RequestType'] == 'Create':
+                  s3_bucket_name = event['ResourceProperties']['S3Bucket']
+                  try:
+                      config = boto3.client('config',region_name=event['ResourceProperties']['Region'])
+                      if not len(config.describe_delivery_channels()['DeliveryChannels']):
+                          try:
+                              config.put_delivery_channel(DeliveryChannel={
+                                  'name': 'config-s3-delivery',
+                                  's3BucketName': s3_bucket_name
+                                  })
+                              config.start_configuration_recorder(ConfigurationRecorderName=config.describe_configuration_recorder_status()['ConfigurationRecordersStatus'][0]['name'])
+                              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                          except ClientError as e:
+                              responseData['error'] = str(e)
+                              responseData['reason'] = 'failed create delivery channel and start config recorder'
+                              cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+                      else:
+                          cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                  except ClientError as e:
+                      responseData['error'] = str(e)
+                      cfnresponse.send(event, context, cfnresponse.FAILED, responseData, 'failed')
+              elif event['RequestType'] == 'Update':
+                  try:
+                      s3_bucket_name = event['ResourceProperties']['S3Bucket']
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                  except ClientError as e:
+                      responseData['error'] = str(e)
+                      cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+              elif event['RequestType'] == 'Delete':
+                  try:
+                      config = boto3.client('config',region_name=event['ResourceProperties']['Region'])
+                      if len(config.describe_configuration_recorders()['ConfigurationRecorders']):
+                          try:
+                              config.stop_configuration_recorder(ConfigurationRecorderName=config.describe_configuration_recorder_status()['ConfigurationRecordersStatus'][0]['name'])
+                              DelChanName = config.describe_delivery_channel_status()['DeliveryChannelsStatus'][0]['name']
+                              config.delete_delivery_channel(DeliveryChannelName = '%s' % DelChanName)
+                              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                          except ClientError as e:
+                              responseData['error'] = str(e)
+                              responseData['reason'] = 'failed to delete config recorder'
+                              cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+                      else:
+                          cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                  except ClientError as e:
+                      responseData['error'] = str(e)
+                      responseData['reason'] = 'failed to delete config recorder'
+                      cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+              else:
+                  responseData['error'] = 'Operation not supported'
+                  cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+      Description: ConfigDeliveryChannelCustomResource
+      Handler: index.main_handler
+      MemorySize: 128
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.12
+      Timeout: 10
+  CreateConfigRecorderLambda:
+    Type: "AWS::Lambda::Function"
+    DependsOn: ConfigRecorderLambdaLogGroup
+    Condition: CreateConfigRecorderAutoDetect
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}${ProjectName}-config-recorder-lambda"
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import boto3
+          import string
+          from botocore.exceptions import ClientError
+          def main_handler(event, context):
+              responseData = {}
+              if event['RequestType'] == 'Create':
+                  try:
+                      configRole = event['ResourceProperties']['ConfigRole']
+                      config = boto3.client('config', region_name=event['ResourceProperties']['Region'])
+                      if not len(config.describe_configuration_recorders()['ConfigurationRecorders']):
+                          try:
+                              config.put_configuration_recorder( ConfigurationRecorder={'name':'default','roleARN': '%s' % configRole,'recordingGroup': {'allSupported' : True, 'includeGlobalResourceTypes': True}})
+                              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                          except ClientError as e:
+                              responseData['error'] = str(e)
+                              responseData['reason'] = 'failed to create configuration recorder'
+                              cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+                      else:
+                          try:
+                              ConfigurationRecorderName = config.describe_configuration_recorders()['ConfigurationRecorders'][0]['name']
+                              config.put_configuration_recorder( ConfigurationRecorder={'name':'%s' % ConfigurationRecorderName,'roleARN':'%s' % configRole})
+                              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                          except ClientError as e:
+                              responseData['error'] = str(e)
+                              responseData['reason'] = 'failed to update config recorder IAM role'
+                              cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                  except ClientError as e:
+                      responseData['error'] = str(e)
+                      cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+              elif event['RequestType'] == 'Update':
+                  try:
+                      configRole = event['ResourceProperties']['ConfigRole']
+                      ConfigurationRecorderName = config.describe_configuration_recorders()['ConfigurationRecorders'][0]['name']
+                      config.put_configuration_recorder( ConfigurationRecorder={'name':'%s' % ConfigurationRecorderName,'roleARN':'%s' % configRole})
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                  except ClientError as e:
+                      responseData['error'] = str(e)
+                      cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+              elif event['RequestType'] == 'Delete':
+                  try:
+                      config = boto3.client('config',region_name=event['ResourceProperties']['Region'])
+                      if len(config.describe_configuration_recorders()['ConfigurationRecorders']):
+                          try:
+                              ConfigurationRecorderName = config.describe_configuration_recorders()['ConfigurationRecorders'][0]['name']
+                              config.delete_configuration_recorder(ConfigurationRecorderName='%s' % ConfigurationRecorderName)
+                              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                          except ClientError as e:
+                              responseData['error'] = str(e)
+                              responseData['reason'] = 'failed to delete config recorder'
+                              cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+                      else:
+                          cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                  except ClientError as e:
+                      responseData['error'] = str(e)
+                      responseData['reason'] = 'failed to delete config recorder'
+                      cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+              else:
+                  responseData['error'] = 'Operation not supported'
+                  cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+      Description: ConfigRecorderCustomResource
+      Handler: index.main_handler
+      MemorySize: 128
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.12
+      Timeout: 10
+  LambdaExecutionRole:
+    Metadata:
+      cfn-lint: { config: { ignore_checks: [ EIAMPolicyWildcardResource, EIAMPolicyActionWildcard ], ignore_reasons: [ EIAMPolicyWildcardResource: "Requires full access to function", EIAMPolicyActionWildcard: "Required for proper function" ] } }
+    Type: AWS::IAM::Role
+    Condition: CreateLambdaRole
+    Properties:
+      RoleName: !Sub "${ResourcePrefix}${ProjectName}-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:${AWS::Partition}:logs:*"
+              - Effect: Allow
+                Action:
+                  - config:*ConfigurationRecorder
+                  - config:Describe*
+                  - config:*DeliveryChannel
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: !Ref AWSConfigARN
+Outputs:
+  Help:
+    Description: For assistance or questions regarding this quickstart please email compliance-accelerator@amazon.com
+    Value: ''
