@@ -173,7 +173,7 @@ Resources:
       CidrBlock: !Ref PrivateSubnet1CidrBlock
       VpcId: !Ref VPC
       #AvailabilityZone: !Sub "${AWS::Region}-2c"
-      AvailabilityZone: !Sub "us-east-2c"
+      AvailabilityZone: !Sub "us-west-2c"
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
@@ -186,7 +186,7 @@ Resources:
       CidrBlock: !Ref PrivateSubnet2CidrBlock
       VpcId: !Ref VPC
       #AvailabilityZone: !Sub "${AWS::Region}-2b"
-      AvailabilityZone: !Sub "us-east-2b"
+      AvailabilityZone: !Sub "us-west-2b"
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
@@ -199,7 +199,7 @@ Resources:
       CidrBlock: !Ref PublicSubnet1CidrBlock
       VpcId: !Ref VPC
       #AvailabilityZone: !Sub "${AWS::Region}-2c"
-      AvailabilityZone: !Sub "us-east-2c"
+      AvailabilityZone: !Sub "us-west-2c"
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
@@ -212,7 +212,7 @@ Resources:
       CidrBlock: !Ref PublicSubnet2CidrBlock
       VpcId: !Ref VPC
       #AvailabilityZone: !Sub "${AWS::Region}-2b"
-      AvailabilityZone: !Sub "us-east-2b"
+      AvailabilityZone: !Sub "us-west-2b"
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
