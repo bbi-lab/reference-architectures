@@ -272,7 +272,7 @@ Parameters:
       See https://aws-quickstart.github.io/option1.html.
     Type: String
   Template3BucketRegion:
-    Default: us-east-2
+    Default: us-west-2
     Description: AWS Region where the CloudFormation templates are hosted.
       Changing this Region updates code references to point to a new template location.
     Type: String
